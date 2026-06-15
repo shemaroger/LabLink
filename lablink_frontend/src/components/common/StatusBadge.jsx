@@ -1,3 +1,4 @@
+import React from 'react';
 const StatusBadge = ({ status }) => {
   const styles = {
     pending:    'bg-yellow-100 text-yellow-800',

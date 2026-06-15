@@ -21,28 +21,32 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = [
-        ('patient', 'Patient'),
-        ('lab_staff', 'Laboratory Staff'),
-        ('admin', 'Admin'),
+        ('patient',      'Patient'),
+        ('lab_staff',    'Laboratory Staff'),
+        ('nurse',        'Nurse'),
+        ('doctor',       'Doctor'),
+        ('receptionist', 'Receptionist'),
+        ('admin',        'Admin'),
     ]
 
-    email = models.EmailField(unique=True)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='patient')
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    email                = models.EmailField(unique=True)
+    first_name           = models.CharField(max_length=100)
+    last_name            = models.CharField(max_length=100)
+    role                 = models.CharField(max_length=20, choices=ROLE_CHOICES, default='patient')
+    is_active            = models.BooleanField(default=True)
+    is_staff             = models.BooleanField(default=False)
+    must_change_password = models.BooleanField(default=False)
+    created_at           = models.DateTimeField(auto_now_add=True)
+    updated_at           = models.DateTimeField(auto_now=True)
 
     objects = UserManager()
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD  = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']
 
     class Meta:
-        db_table = 'users'
-        verbose_name = 'User'
+        db_table        = 'users'
+        verbose_name    = 'User'
         verbose_name_plural = 'Users'
 
     def __str__(self):

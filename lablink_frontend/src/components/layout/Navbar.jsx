@@ -1,11 +1,11 @@
+import React, { useEffect, useState } from 'react';
 import { Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useEffect, useState } from 'react';
 import { getUnreadCount } from '../../api/notifications';
 import { Link } from 'react-router-dom';
 
 const Navbar = ({ title }) => {
-  const { user } = useAuth();
+  const { user }            = useAuth();
   const [unread, setUnread] = useState(0);
 
   useEffect(() => {
@@ -17,41 +17,113 @@ const Navbar = ({ title }) => {
   }, [user]);
 
   return (
-    <header className="h-16 bg-white border-b border-gray-100
-                       flex items-center justify-between px-6">
-      <h1 className="text-lg font-semibold text-gray-800">
+    <header style={{
+      height: '64px',
+      backgroundColor: '#ffffff',
+      borderBottom: '1px solid #f3f4f6',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '0 24px',
+      fontFamily: 'Inter, sans-serif',
+    }}>
+
+      {/* Page title */}
+      <h1 style={{
+        fontSize: '17px',
+        fontWeight: 600,
+        color: '#111827',
+        margin: 0,
+      }}>
         {title}
       </h1>
 
-      <div className="flex items-center gap-4">
+      {/* Right side */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+      }}>
+
+        {/* Notification bell — patients only */}
         {user?.role === 'patient' && (
           <Link
             to="/patient/dashboard"
-            className="relative p-2 text-gray-500 hover:text-gray-700
-                       hover:bg-gray-100 rounded-lg transition-colors"
+            style={{
+              position: 'relative',
+              padding: '8px',
+              color: '#6b7280',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textDecoration: 'none',
+              transition: 'background-color 0.15s ease',
+              backgroundColor: 'transparent',
+            }}
+            onMouseEnter={(e) =>
+              e.currentTarget.style.backgroundColor = '#f3f4f6'
+            }
+            onMouseLeave={(e) =>
+              e.currentTarget.style.backgroundColor = 'transparent'
+            }
           >
-            <Bell className="w-5 h-5" />
+            <Bell style={{ width: '20px', height: '20px' }} />
             {unread > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5
-                               bg-red-500 text-white text-xs rounded-full
-                               flex items-center justify-center font-medium">
+              <span style={{
+                position: 'absolute',
+                top: '-2px',
+                right: '-2px',
+                width: '18px',
+                height: '18px',
+                backgroundColor: '#ef4444',
+                color: 'white',
+                fontSize: '10px',
+                fontWeight: 600,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
                 {unread > 9 ? '9+' : unread}
               </span>
             )}
           </Link>
         )}
 
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary-100 rounded-full
-                          flex items-center justify-center">
-            <span className="text-primary-700 font-semibold text-xs">
+        {/* User avatar + name */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+        }}>
+          <div style={{
+            width: '34px',
+            height: '34px',
+            background: 'linear-gradient(135deg, #9ba4d4 0%, #6b77c0 100%)',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <span style={{
+              color: 'white',
+              fontWeight: 600,
+              fontSize: '12px',
+            }}>
               {user?.first_name?.[0]}{user?.last_name?.[0]}
             </span>
           </div>
-          <span className="text-sm text-gray-600 font-medium">
+          <span style={{
+            fontSize: '14px',
+            fontWeight: 500,
+            color: '#374151',
+          }}>
             {user?.first_name}
           </span>
         </div>
+
       </div>
     </header>
   );

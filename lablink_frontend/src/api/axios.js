@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8000/api';
+const API_URL = 'http://127.0.0.1:8000/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -21,11 +21,20 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Auto refresh token on 401
+// Handle token expiry
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // Don't retry on login or refresh endpoints
+    if (
+      originalRequest.url?.includes('/login/') ||
+      originalRequest.url?.includes('/token/refresh/')
+    ) {
+      return Promise.reject(error);
+    }
+
     if (
       error.response?.status === 401 &&
       !originalRequest._retry
@@ -33,19 +42,32 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       try {
         const refresh = localStorage.getItem('refresh_token');
+
+        if (!refresh) {
+          localStorage.clear();
+          window.location.href = '/login';
+          return Promise.reject(error);
+        }
+
         const res = await axios.post(
           `${API_URL}/users/token/refresh/`,
           { refresh }
         );
-        localStorage.setItem('access_token', res.data.access);
+
+        const newAccess = res.data.access;
+        localStorage.setItem('access_token', newAccess);
         api.defaults.headers.common['Authorization'] =
-          `Bearer ${res.data.access}`;
+          `Bearer ${newAccess}`;
+        originalRequest.headers['Authorization'] =
+          `Bearer ${newAccess}`;
         return api(originalRequest);
       } catch {
         localStorage.clear();
         window.location.href = '/login';
+        return Promise.reject(error);
       }
     }
+
     return Promise.reject(error);
   }
 );

@@ -1,74 +1,191 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, FlaskConical } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 
 const LoginPage = () => {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
+  const { login }             = useAuth();
+  const navigate              = useNavigate();
+  const [showPw, setShowPw]   = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm();
+  const { register, handleSubmit, formState: { errors } } = useForm();
 
   const onSubmit = async (data) => {
-    setLoading(true);
-    try {
-      const user = await login(data);
-      if (user.role === 'patient') navigate('/patient/dashboard');
-      else if (user.role === 'lab_staff') navigate('/staff/dashboard');
-      else if (user.role === 'admin') navigate('/admin/dashboard');
-    } catch (err) {
-      toast.error(
-        err.response?.data?.detail || 'Invalid email or password.'
-      );
-    } finally {
-      setLoading(false);
+  setLoading(true);
+  try {
+    const user = await login(data);
+    console.log('USER AFTER LOGIN:', user);
+    console.log('must_change_password:', user.must_change_password);
+    console.log('role:', user.role);
+
+    if (user.must_change_password) {
+      console.log('Redirecting to change-password');
+      navigate('/change-password');
+      return;
     }
-  };
+
+    if      (user.role === 'patient')      navigate('/patient/dashboard');
+    else if (user.role === 'lab_staff')    navigate('/staff/dashboard');
+    else if (user.role === 'doctor')       navigate('/doctor/dashboard');
+    else if (user.role === 'receptionist') navigate('/receptionist/dashboard');
+    else if (user.role === 'nurse')        navigate('/nurse/dashboard');
+    else if (user.role === 'admin')        navigate('/admin/dashboard');
+    else navigate('/unauthorized');
+
+  } catch (err) {
+    toast.error(err.response?.data?.detail || 'Invalid email or password.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50
-                    to-blue-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#c5c9e8',
+      padding: '20px',
+      fontFamily: 'Inter, sans-serif',
+    }}>
 
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center
-                          w-16 h-16 bg-primary-600 rounded-2xl mb-4">
-            <FlaskConical className="w-8 h-8 text-white" />
+      {/* OUTER CARD */}
+      <div style={{
+        display: 'flex',
+        width: '100%',
+        maxWidth: '880px',
+        minHeight: '560px',
+        borderRadius: '28px',
+        overflow: 'hidden',
+        boxShadow: '0 24px 80px rgba(0,0,0,0.15)',
+      }}>
+
+        {/* ════ LEFT PURPLE PANEL ════ */}
+        <div style={{
+          width: '44%',
+          background: 'linear-gradient(160deg, #9ba4d4 0%, #7b86c8 40%, #6b77c0 100%)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          padding: '36px 32px 0',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+
+          {/* Top content */}
+          <div>
+            <div style={{
+              width: '80px', height: '80px',
+              backgroundColor: 'white', borderRadius: '20px',
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'center', marginBottom: '24px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)', padding: '8px',
+            }}>
+              <img src="/logo.png" alt="TechQuest LabLink"
+                   style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>
+
+            <p style={{
+              color: 'white', fontSize: '20px', fontWeight: 600,
+              lineHeight: 1.45, fontStyle: 'italic',
+              maxWidth: '210px', margin: 0,
+            }}>
+              LabLink — secure access to your laboratory results.
+            </p>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">LabLink</h1>
-          <p className="text-gray-500 mt-1 text-sm">
-            Laboratory Results Management System
-          </p>
+
+          {/* Bottom illustration */}
+          <div style={{
+            display: 'flex', justifyContent: 'center',
+            alignItems: 'flex-end', position: 'relative', marginTop: '24px',
+          }}>
+            <div style={{
+              position: 'absolute', bottom: '-30px', left: '50%',
+              transform: 'translateX(-50%)', width: '260px', height: '100px',
+              borderRadius: '50%',
+              background: 'linear-gradient(180deg, #8a96ce 0%, #5f6bbf 100%)',
+              zIndex: 0,
+            }} />
+            <svg viewBox="0 0 160 200" xmlns="http://www.w3.org/2000/svg"
+                 style={{
+                   width: '180px', height: '200px',
+                   position: 'relative', zIndex: 1,
+                   filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.25))',
+                 }}>
+              <rect x="55" y="8" width="50" height="14" rx="6"
+                    fill="rgba(255,255,255,0.9)"
+                    stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
+              <path
+                d="M55 22 L55 80 L20 145 Q12 162 25 168 L135 168 Q148 162 140 145 L105 80 L105 22 Z"
+                fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.7)"
+                strokeWidth="2.5" strokeLinejoin="round" />
+              <path
+                d="M28 148 L46 110 L114 110 L132 148 Q140 160 130 165 L30 165 Q20 160 28 148 Z"
+                fill="rgba(255,255,255,0.22)" />
+              <circle cx="55" cy="138" r="6" fill="rgba(255,255,255,0.45)" />
+              <circle cx="80" cy="148" r="4" fill="rgba(255,255,255,0.38)" />
+              <circle cx="100" cy="135" r="5" fill="rgba(255,255,255,0.32)" />
+              <circle cx="70" cy="128" r="3" fill="rgba(255,255,255,0.28)" />
+              <line x1="68" y1="28" x2="68" y2="78"
+                    stroke="rgba(255,255,255,0.35)"
+                    strokeWidth="3" strokeLinecap="round" />
+              <text x="18" y="55" fill="rgba(255,255,255,0.55)"
+                    fontSize="20" fontWeight="bold">+</text>
+              <text x="122" y="70" fill="rgba(255,255,255,0.40)"
+                    fontSize="16" fontWeight="bold">+</text>
+              <text x="130" y="40" fill="rgba(255,255,255,0.30)"
+                    fontSize="12" fontWeight="bold">+</text>
+            </svg>
+          </div>
+
         </div>
 
-        {/* Card */}
-        <div className="card">
-          <h2 className="text-xl font-semibold text-gray-800 mb-6">
-            Sign in to your account
+        {/* ════ RIGHT WHITE PANEL ════ */}
+        <div style={{
+          flex: 1, backgroundColor: '#ffffff',
+          display: 'flex', flexDirection: 'column',
+          justifyContent: 'center', padding: '48px 52px',
+          position: 'relative',
+        }}>
+
+          {/* Language selector */}
+          <div style={{
+            position: 'absolute', top: '22px', right: '28px',
+            fontSize: '12px', color: '#9ca3af',
+            cursor: 'pointer', userSelect: 'none',
+          }}>
+            English(US) ▾
+          </div>
+
+          {/* Heading */}
+          <h2 style={{
+            fontSize: '28px', fontWeight: 800,
+            color: '#111827', marginBottom: '36px', marginTop: 0,
+          }}>
+            Sign In
           </h2>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} style={{ width: '100%' }}>
 
             {/* Email */}
-            <div>
-              <label className="block text-sm font-medium
-                                text-gray-700 mb-1">
-                Email address
+            <div style={{ marginBottom: '28px' }}>
+              <label style={{
+                display: 'block', fontSize: '14px',
+                color: '#6b7280', marginBottom: '8px',
+              }}>
+                Email:
               </label>
               <input
                 type="email"
-                placeholder="you@example.com"
-                className={`input-field ${errors.email
-                  ? 'border-red-400 focus:ring-red-400' : ''}`}
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  padding: '8px 0', fontSize: '15px', color: '#111827',
+                  background: 'transparent', border: 'none',
+                  borderBottom: '1.5px solid #d1d5db', outline: 'none',
+                }}
                 {...register('email', {
                   required: 'Email is required',
                   pattern: {
@@ -78,80 +195,98 @@ const LoginPage = () => {
                 })}
               />
               {errors.email && (
-                <p className="text-red-500 text-xs mt-1">
+                <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
                   {errors.email.message}
                 </p>
               )}
             </div>
 
             {/* Password */}
-            <div>
-              <label className="block text-sm font-medium
-                                text-gray-700 mb-1">
-                Password
+            <div style={{ marginBottom: '40px' }}>
+              <label style={{
+                display: 'block', fontSize: '14px',
+                color: '#6b7280', marginBottom: '8px',
+              }}>
+                Password:
               </label>
-              <div className="relative">
+              <div style={{ position: 'relative' }}>
                 <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
-                  className={`input-field pr-10 ${errors.password
-                    ? 'border-red-400 focus:ring-red-400' : ''}`}
+                  type={showPw ? 'text' : 'password'}
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    padding: '8px 36px 8px 0', fontSize: '15px',
+                    color: '#111827', background: 'transparent',
+                    border: 'none', borderBottom: '1.5px solid #d1d5db',
+                    outline: 'none',
+                  }}
                   {...register('password', {
                     required: 'Password is required',
-                    minLength: {
-                      value: 6,
-                      message: 'Minimum 6 characters',
-                    },
+                    minLength: { value: 6, message: 'Min 6 characters' },
                   })}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2
-                             text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword
-                    ? <EyeOff className="w-4 h-4" />
-                    : <Eye className="w-4 h-4" />}
+                <button type="button" onClick={() => setShowPw(!showPw)}
+                  style={{
+                    position: 'absolute', right: '0',
+                    top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none',
+                    cursor: 'pointer', color: '#9ca3af',
+                    display: 'flex', alignItems: 'center', padding: 0,
+                  }}>
+                  {showPw
+                    ? <EyeOff style={{ width: '18px', height: '18px' }} />
+                    : <Eye style={{ width: '18px', height: '18px' }} />}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-red-500 text-xs mt-1">
+                <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
                   {errors.password.message}
                 </p>
               )}
             </div>
 
             {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full py-2.5 mt-2"
-            >
+            <button type="submit" disabled={loading}
+              style={{
+                width: '100%', padding: '16px',
+                backgroundColor: '#6b77c0', color: '#ffffff',
+                fontWeight: 700, fontSize: '16px',
+                borderRadius: '12px', border: 'none',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.7 : 1,
+                boxShadow: '0 4px 20px rgba(107,119,192,0.40)',
+                marginBottom: '20px', boxSizing: 'border-box',
+              }}>
               {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white
-                                   border-t-transparent rounded-full
-                                   animate-spin" />
+                <span style={{
+                  display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', gap: '8px',
+                }}>
+                  <span style={{
+                    width: '16px', height: '16px',
+                    border: '2px solid white', borderTopColor: 'transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                    display: 'inline-block',
+                  }} />
                   Signing in...
                 </span>
-              ) : 'Sign in'}
+              ) : 'Sign In'}
             </button>
 
           </form>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
-            Don't have an account?{' '}
-            <Link
-              to="/register"
-              className="text-primary-600 font-medium hover:underline"
-            >
-              Register here
-            </Link>
+          {/* No self-registration — admin creates all accounts */}
+          <p style={{
+            fontSize: '13px', color: '#9ca3af',
+            margin: 0, textAlign: 'center',
+          }}>
+            Contact your administrator to get access.
           </p>
-        </div>
 
+        </div>
       </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };

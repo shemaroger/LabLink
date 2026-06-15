@@ -4,20 +4,21 @@ from users.serializers import UserSerializer
 
 
 class PatientSerializer(serializers.ModelSerializer):
-    full_name = serializers.ReadOnlyField()
-    email = serializers.ReadOnlyField()
-    user = UserSerializer(read_only=True)
+    full_name    = serializers.ReadOnlyField()
+    email        = serializers.ReadOnlyField()
+    is_queued_today = serializers.ReadOnlyField()
 
     class Meta:
-        model = Patient
+        model  = Patient
         fields = [
-            'id', 'user', 'full_name', 'email',
+            'id', 'full_name', 'email',
             'date_of_birth', 'gender', 'phone',
             'address', 'blood_group', 'allergies',
             'emergency_contact_name', 'emergency_contact_phone',
+            'queue_number', 'queue_status', 'queue_date',
+            'is_queued_today',
             'created_at', 'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class PatientCreateSerializer(serializers.ModelSerializer):
@@ -40,7 +41,7 @@ class PatientCreateSerializer(serializers.ModelSerializer):
 
 class PatientUpdateSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Patient
+        model  = Patient
         fields = [
             'date_of_birth', 'gender', 'phone',
             'address', 'blood_group', 'allergies',

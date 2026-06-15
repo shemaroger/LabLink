@@ -4,63 +4,92 @@ from django.utils import timezone
 
 
 def send_result_notification(result):
-    """
-    Called when a lab result status is set to available.
-    Creates an in-app notification and sends an email.
-    """
+    """Notify patient that their lab result is ready."""
     from .models import Notification
-
-    patient = result.patient
-    title = f'Your {result.test_name} result is ready'
-    message = (
-        f'Dear {patient.full_name},\n\n'
-        f'Your laboratory test result for {result.test_name} '
-        f'(Test type: {result.get_test_type_display()}) '
-        f'is now available. Please log in to LabLink to view '
-        f'and download your result.\n\n'
-        f'Test date: {result.test_date}\n\n'
-        f'If you have any questions, please contact your healthcare provider.\n\n'
-        f'LabLink Team'
-    )
-
-    # Create in-app notification
-    notification = Notification.objects.create(
-        patient=patient,
-        result=result,
-        title=title,
-        message=message,
-        delivery_method='in_app',
-        status='sent',
-    )
-
-    # Send email notification
     try:
-        send_mail(
-            subject=title,
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[patient.email],
-            fail_silently=False,
-        )
-        # Create email notification record
+        # Get patient profile from user
+        patient = result.patient
         Notification.objects.create(
             patient=patient,
             result=result,
-            title=title,
-            message=message,
-            delivery_method='email',
+            title='Your lab result is ready',
+            message=(
+                f'Your {result.test_name} result is now available. '
+                f'Log in to LabLink to view your results.'
+            ),
+            delivery_method='in_app',
             status='sent',
         )
     except Exception as e:
-        # Create failed email notification record
+        print(f'Result notification failed: {e}')
+
+
+def send_queue_notification(patient, queue_number):
+    """Notify patient of their assigned queue number."""
+    from .models import Notification
+    try:
         Notification.objects.create(
             patient=patient,
-            result=result,
-            title=title,
-            message=message,
-            delivery_method='email',
-            status='failed',
+            result=None,
+            title=f'Queue number assigned — #{queue_number}',
+            message=(
+                f'You have been assigned queue number #{queue_number}. '
+                f'Please wait in the waiting area and you will be '
+                f'called when it is your turn.'
+            ),
+            delivery_method='in_app',
+            status='sent',
         )
-        print(f'Email notification failed: {e}')
+    except Exception as e:
+        print(f'Queue notification failed: {e}')
 
-    return notification
+
+def send_queue_called_notification(patient):
+    """Notify patient that they are being called."""
+    from .models import Notification
+    try:
+        Notification.objects.create(
+            patient=patient,
+            result=None,
+            title=f'You are being called — Queue #{patient.queue_number}',
+            message=(
+                f'Queue #{patient.queue_number} — '
+                f'Please proceed to the consultation room now.'
+            ),
+            delivery_method='in_app',
+            status='sent',
+        )
+    except Exception as e:
+        print(f'Queue called notification failed: {e}')
+
+
+def send_queue_status_notification(patient, new_status):
+    """Notify patient of queue status change."""
+    from .models import Notification
+
+    status_messages = {
+        'in_progress': (
+            f'Queue #{patient.queue_number} — '
+            f'Your consultation is now in progress.'
+        ),
+        'done': (
+            f'Queue #{patient.queue_number} — '
+            f'Your visit is complete. Thank you for visiting.'
+        ),
+    }
+
+    message = status_messages.get(new_status)
+    if not message:
+        return
+
+    try:
+        Notification.objects.create(
+            patient=patient,
+            result=None,
+            title=f'Queue update — #{patient.queue_number}',
+            message=message,
+            delivery_method='in_app',
+            status='sent',
+        )
+    except Exception as e:
+        print(f'Queue status notification failed: {e}')

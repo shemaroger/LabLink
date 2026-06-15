@@ -10,6 +10,9 @@ urlpatterns = [
     path('api/results/', include('lab_results.urls')),
     path('api/notifications/', include('notifications.urls')),
     path('api/audit-logs/', include('audit_logs.urls')),
+    path('api/triage/', include('triage.urls')),
+    path('api/consultations/',  include('consultations.urls')),  # ← must exist
+
 ]
 
 if settings.DEBUG:
