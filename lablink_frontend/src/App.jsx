@@ -3,9 +3,12 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
+import SessionTimeoutWarning from './components/common/SessionTimeoutWarning';
 
 import LoginPage             from './pages/auth/LoginPage';
 import ChangePasswordPage    from './pages/auth/ChangePasswordPage';
+import ForgotPasswordPage    from './pages/auth/ForgotPasswordPage';
+import VerifyEmailPage       from './pages/auth/VerifyEmailPage';
 import Unauthorized          from './pages/Unauthorized';
 
 import PatientDashboard      from './pages/patient/PatientDashboard';
@@ -67,12 +70,15 @@ function App() {
             },
           }}
         />
+        <SessionTimeoutWarning />
         <Routes>
 
           {/* ── Public ── */}
           <Route path="/"                element={<Navigate to="/login" replace />} />
           <Route path="/login"           element={<LoginPage />} />
           <Route path="/change-password" element={<ChangePasswordPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/verify-email"    element={<VerifyEmailPage />} />
           <Route path="/unauthorized"    element={<Unauthorized />} />
 
           {/* ── Patient ── */}

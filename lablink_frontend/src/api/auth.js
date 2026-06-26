@@ -17,3 +17,21 @@ export const updateProfile = (data) =>
 
 export const changePassword = (data) =>
   api.post('/users/change-password/', data);
+
+export const verifyMfaLogin = (data) =>
+  api.post('/users/mfa/verify-login/', data);
+
+export const setMfaEnabled = (enabled) =>
+  api.patch('/users/mfa/', { enabled });
+
+export const requestPasswordReset = (identifier) =>
+  api.post('/users/password-reset/request/', { identifier });
+
+export const confirmPasswordReset = (data) =>
+  api.post('/users/password-reset/confirm/', data);
+
+export const verifyEmail = (token) =>
+  api.get('/users/verify-email/', { params: { token } });
+
+export const resendVerificationEmail = () =>
+  api.post('/users/resend-verification/');

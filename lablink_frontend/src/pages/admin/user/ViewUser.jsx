@@ -4,19 +4,21 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../../api/axios';
 import toast from 'react-hot-toast';
 import {
-  ArrowLeft, Mail, Shield, Calendar,
-  User, Edit, Trash2, UserCheck, UserX,
+  ArrowLeft, Mail, Phone, Shield, Calendar,
+  User, Edit, UserCheck, UserX,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
 const RoleBadge = ({ role }) => {
   const styles = {
-    patient:   { bg: '#dbeafe', color: '#2563eb' },
-    lab_staff: { bg: '#dcfce7', color: '#16a34a' },
-    admin:     { bg: '#ede9fe', color: '#7c3aed' },
+    patient:        { bg: '#dbeafe', color: '#2563eb' },
+    lab_staff:      { bg: '#dcfce7', color: '#16a34a' },
+    admin:          { bg: '#ede9fe', color: '#7c3aed' },
+    hospital_admin: { bg: '#fee2e2', color: '#dc2626' },
   };
   const labels = {
     patient: 'Patient', lab_staff: 'Lab Staff', admin: 'Admin',
+    hospital_admin: 'Hospital Admin',
   };
   const s = styles[role] || { bg: '#f3f4f6', color: '#6b7280' };
   return (
@@ -36,7 +38,6 @@ const ViewUser = () => {
   const [user, setUser]         = useState(null);
   const [loading, setLoading]   = useState(true);
   const [toggling, setToggling] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     api.get(`/users/${id}/`)
@@ -55,19 +56,6 @@ const ViewUser = () => {
       toast.error('Failed to update status.');
     } finally {
       setToggling(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!window.confirm('Delete this user? This cannot be undone.')) return;
-    setDeleting(true);
-    try {
-      await api.delete(`/users/${id}/`);
-      toast.success('User deleted.');
-      navigate('/admin/users');
-    } catch {
-      toast.error('Failed to delete user.');
-      setDeleting(false);
     }
   };
 
@@ -185,6 +173,7 @@ const ViewUser = () => {
               {/* Info rows */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {infoRow(Mail,     'Email address', user.email)}
+                {infoRow(Phone,    'Phone', user.phone || '—')}
                 {infoRow(User,     'Full name', `${user.first_name} ${user.last_name}`)}
                 {infoRow(Shield,   'Account status',
                   user.is_active ? 'Active' : 'Inactive',
@@ -234,23 +223,6 @@ const ViewUser = () => {
                   ? <UserX style={{ width: '15px', height: '15px' }} />
                   : <UserCheck style={{ width: '15px', height: '15px' }} />}
                 {user.is_active ? 'Deactivate' : 'Activate'}
-              </button>
-
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                style={{
-                  display: 'flex', alignItems: 'center',
-                  gap: '8px', padding: '11px 20px',
-                  backgroundColor: '#fef2f2', color: '#dc2626',
-                  fontWeight: 600, fontSize: '14px',
-                  borderRadius: '10px', border: 'none',
-                  cursor: deleting ? 'not-allowed' : 'pointer',
-                  opacity: deleting ? 0.7 : 1,
-                }}
-              >
-                <Trash2 style={{ width: '15px', height: '15px' }} />
-                Delete user
               </button>
             </div>
 

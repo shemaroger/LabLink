@@ -33,6 +33,8 @@ const EditPatient = () => {
           allergies:               p.allergies || '',
           emergency_contact_name:  p.emergency_contact_name || '',
           emergency_contact_phone: p.emergency_contact_phone || '',
+          insurance_provider:      p.insurance_provider || '',
+          insurance_card_number:   p.insurance_card_number || '',
         });
       })
       .catch(() => toast.error('Failed to load patient.'))
@@ -215,6 +217,22 @@ const EditPatient = () => {
                   <input type="text" placeholder="+250 7XX XXX XXX"
                          style={inputStyle}
                          {...register('emergency_contact_phone')} />
+                </div>
+
+                {/* Insurance provider */}
+                <div>
+                  <label style={labelStyle}>Insurance provider</label>
+                  <input type="text" placeholder="e.g. NHIF, AAR, Jubilee"
+                         style={inputStyle}
+                         {...register('insurance_provider')} />
+                </div>
+
+                {/* Insurance card number */}
+                <div>
+                  <label style={labelStyle}>Insurance card number</label>
+                  <input type="text" placeholder="Card / membership number"
+                         style={inputStyle}
+                         {...register('insurance_card_number')} />
                 </div>
 
                 {/* Buttons */}

@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import api from '../../../api/axios';
 import toast from 'react-hot-toast';
 import {
-  User, Mail, UserCheck,
+  User, Mail, Phone, UserCheck,
   ArrowLeft, Save,
 } from 'lucide-react';
 
@@ -25,6 +25,7 @@ const EditUser = () => {
           first_name: res.data.first_name,
           last_name:  res.data.last_name,
           email:      res.data.email,
+          phone:      res.data.phone,
           role:       res.data.role,
           is_active:  res.data.is_active ? 'true' : 'false',
         });
@@ -198,6 +199,16 @@ const EditUser = () => {
                   )}
                 </div>
 
+                {/* Phone */}
+                <div>
+                  <label style={labelStyle}>Phone</label>
+                  <div style={inputWrap}>
+                    <Phone style={iconStyle} />
+                    <input type="text" placeholder="+254712345678" style={inputStyle}
+                           {...register('phone')} />
+                  </div>
+                </div>
+
                 {/* Role */}
                 <div>
                   <label style={labelStyle}>Role</label>
@@ -216,6 +227,7 @@ const EditUser = () => {
                       <option value="receptionist">Receptionist</option>
                       <option value="patient">Patient</option>
                       <option value="admin">Admin</option>
+                      <option value="hospital_admin">Hospital Admin</option>
                     </select>
                   </div>
                   {errors.role && (

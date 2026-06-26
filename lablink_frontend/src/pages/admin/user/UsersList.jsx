@@ -3,7 +3,7 @@ import Layout from '../../../components/layout/Layout';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../api/axios';
 import {
-  Search, Users, Eye, Trash2,
+  Search, Users, Eye,
   UserCheck, UserX, Plus,
   ChevronLeft, ChevronRight, Edit,
 } from 'lucide-react';
@@ -14,12 +14,14 @@ const ITEMS_PER_PAGE = 10;
 
 const RoleBadge = ({ role }) => {
   const styles = {
-    patient:   { bg: '#dbeafe', color: '#2563eb' },
-    lab_staff: { bg: '#dcfce7', color: '#16a34a' },
-    admin:     { bg: '#ede9fe', color: '#7c3aed' },
+    patient:        { bg: '#dbeafe', color: '#2563eb' },
+    lab_staff:      { bg: '#dcfce7', color: '#16a34a' },
+    admin:          { bg: '#ede9fe', color: '#7c3aed' },
+    hospital_admin: { bg: '#fee2e2', color: '#dc2626' },
   };
   const labels = {
     patient: 'Patient', lab_staff: 'Lab Staff', admin: 'Admin',
+    hospital_admin: 'Hospital Admin',
   };
   const s = styles[role] || { bg: '#f3f4f6', color: '#6b7280' };
   return (
@@ -42,7 +44,6 @@ const UsersList = () => {
   const [search, setSearch]         = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [selected, setSelected]     = useState(null);
-  const [deleting, setDeleting]     = useState(null);
   const [page, setPage]             = useState(1);
 
   useEffect(() => {
@@ -86,26 +87,12 @@ const UsersList = () => {
     }
   };
 
-  const handleDelete = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
-    setDeleting(userId);
-    try {
-      await api.delete(`/users/${userId}/`);
-      setUsers((prev) => prev.filter((u) => u.id !== userId));
-      if (selected?.id === userId) setSelected(null);
-      toast.success('User deleted successfully.');
-    } catch {
-      toast.error('Failed to delete user.');
-    } finally {
-      setDeleting(null);
-    }
-  };
-
   const counts = {
     all:       users.length,
-    patient:   users.filter((u) => u.role === 'patient').length,
-    lab_staff: users.filter((u) => u.role === 'lab_staff').length,
-    admin:     users.filter((u) => u.role === 'admin').length,
+    patient:        users.filter((u) => u.role === 'patient').length,
+    lab_staff:      users.filter((u) => u.role === 'lab_staff').length,
+    admin:          users.filter((u) => u.role === 'admin').length,
+    hospital_admin: users.filter((u) => u.role === 'hospital_admin').length,
   };
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
@@ -257,7 +244,11 @@ const UsersList = () => {
               <option value="">All roles</option>
               <option value="patient">Patient</option>
               <option value="lab_staff">Lab Staff</option>
+              <option value="nurse">Nurse</option>
+              <option value="doctor">Doctor</option>
+              <option value="receptionist">Receptionist</option>
               <option value="admin">Admin</option>
+              <option value="hospital_admin">Hospital Admin</option>
             </select>
           </div>
         </div>
@@ -443,27 +434,6 @@ const UsersList = () => {
                             {u.is_active
                               ? <UserX style={{ width: '15px', height: '15px' }} />
                               : <UserCheck style={{ width: '15px', height: '15px' }} />}
-                          </button>
-
-                          {/* Delete */}
-                          <button
-                            onClick={() => handleDelete(u.id)}
-                            disabled={deleting === u.id}
-                            title="Delete user"
-                            style={{
-                              ...iconBtn('#dc2626'),
-                              opacity: deleting === u.id ? 0.5 : 1,
-                              cursor: deleting === u.id
-                                ? 'not-allowed' : 'pointer',
-                            }}
-                            onMouseEnter={(e) =>
-                              e.currentTarget.style.backgroundColor = '#fef2f2'
-                            }
-                            onMouseLeave={(e) =>
-                              e.currentTarget.style.backgroundColor = 'transparent'
-                            }
-                          >
-                            <Trash2 style={{ width: '15px', height: '15px' }} />
                           </button>
                         </div>
                       </td>
@@ -682,20 +652,6 @@ const UsersList = () => {
                   }}
                 >
                   {selected.is_active ? 'Deactivate' : 'Activate'}
-                </button>
-                <button
-                  onClick={() => {
-                    handleDelete(selected.id);
-                    setSelected(null);
-                  }}
-                  style={{
-                    flex: 1, padding: '10px',
-                    borderRadius: '10px', border: 'none',
-                    cursor: 'pointer', fontSize: '13px', fontWeight: 600,
-                    backgroundColor: '#fef2f2', color: '#dc2626',
-                  }}
-                >
-                  Delete
                 </button>
               </div>
             </div>

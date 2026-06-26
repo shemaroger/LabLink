@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
+import { setMfaEnabled as setMfaEnabledApi, resendVerificationEmail } from '../../api/auth';
 import toast from 'react-hot-toast';
-import { Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Lock, Eye, EyeOff, ShieldCheck, MailCheck } from 'lucide-react';
 
 const ChangePasswordPage = () => {
   const { user, refreshUser }     = useAuth();
@@ -13,10 +14,38 @@ const ChangePasswordPage = () => {
   const [showNew, setShowNew]     = useState(false);
   const [showNew2, setShowNew2]   = useState(false);
   const [loading, setLoading]     = useState(false);
+  const [mfaLoading, setMfaLoading]       = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const {
     register, handleSubmit, watch, formState: { errors },
   } = useForm();
   const newPassword = watch('new_password');
+
+  const onToggleMfa = async (e) => {
+    const enabled = e.target.checked;
+    setMfaLoading(true);
+    try {
+      await setMfaEnabledApi(enabled);
+      await refreshUser();
+      toast.success(enabled ? 'Two-factor authentication enabled.' : 'Two-factor authentication disabled.');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Could not update two-factor authentication.');
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const onResendVerification = async () => {
+    setResendLoading(true);
+    try {
+      const res = await resendVerificationEmail();
+      toast.success(res.data?.detail || 'Verification email sent.');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Could not send verification email.');
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   const onSubmit = async (data) => {
     setLoading(true);
@@ -40,6 +69,7 @@ const ChangePasswordPage = () => {
       else if (role === 'receptionist') navigate('/receptionist/dashboard');
       else if (role === 'nurse')        navigate('/nurse/dashboard');
       else if (role === 'admin')        navigate('/admin/dashboard');
+      else if (role === 'hospital_admin') navigate('/admin/dashboard');
       else navigate('/login');
 
     } catch (err) {
@@ -388,6 +418,79 @@ const ChangePasswordPage = () => {
             </button>
 
           </form>
+
+          {!user?.must_change_password && user?.email && (
+            <div style={{
+              marginTop: '32px', paddingTop: '24px',
+              borderTop: '1px solid #e5e7eb',
+            }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>
+                Account security
+              </h3>
+
+              {/* MFA toggle */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                marginBottom: '16px',
+              }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: '14px', color: '#111827', fontWeight: 600 }}>
+                    Two-factor authentication
+                  </p>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
+                    Require a one-time code emailed to you at every login.
+                  </p>
+                </div>
+                <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                  <input
+                    type="checkbox"
+                    checked={!!user?.mfa_enabled}
+                    disabled={mfaLoading}
+                    onChange={onToggleMfa}
+                    style={{ opacity: 0, width: 0, height: 0 }}
+                  />
+                  <span style={{
+                    position: 'absolute', inset: 0, borderRadius: '24px',
+                    backgroundColor: user?.mfa_enabled ? '#6b77c0' : '#d1d5db',
+                    transition: 'background-color 0.2s', cursor: mfaLoading ? 'not-allowed' : 'pointer',
+                  }} />
+                  <span style={{
+                    position: 'absolute', top: '3px',
+                    left: user?.mfa_enabled ? '23px' : '3px',
+                    width: '18px', height: '18px', borderRadius: '50%',
+                    backgroundColor: '#fff', transition: 'left 0.2s',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                  }} />
+                </label>
+              </div>
+
+              {/* Email verification status */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <MailCheck style={{
+                    width: '16px', height: '16px',
+                    color: user?.email_verified ? '#16a34a' : '#d97706',
+                  }} />
+                  <p style={{ margin: 0, fontSize: '13px', color: '#374151' }}>
+                    Email {user?.email_verified ? 'verified' : 'not verified'}
+                  </p>
+                </div>
+                {!user?.email_verified && (
+                  <button
+                    type="button"
+                    onClick={onResendVerification}
+                    disabled={resendLoading}
+                    style={{
+                      background: 'none', border: 'none', color: '#6b77c0',
+                      fontSize: '12px', fontWeight: 600, cursor: 'pointer', padding: 0,
+                    }}
+                  >
+                    {resendLoading ? 'Sending...' : 'Resend verification email'}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

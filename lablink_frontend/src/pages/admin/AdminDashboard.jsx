@@ -3,9 +3,10 @@ import Layout from '../../components/layout/Layout';
 import { getAllResults } from '../../api/results';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
+import toast from 'react-hot-toast';
 import {
   Users, FileText, Shield,
-  Activity, AlertCircle, FlaskConical,
+  Activity, AlertCircle, FlaskConical, Download,
 } from 'lucide-react';
 
 // ── Donut chart component ──
@@ -202,6 +203,29 @@ const AdminDashboard = () => {
   const [users, setUsers]     = useState([]);
   const [stats, setStats]     = useState(null);
   const [loading, setLoading] = useState(true);
+  const [backingUp, setBackingUp] = useState(false);
+
+  const handleBackup = async () => {
+    setBackingUp(true);
+    try {
+      const res = await api.get('/admin/backup/', { responseType: 'blob' });
+      const match = res.headers['content-disposition']?.match(/filename="(.+)"/);
+      const filename = match ? match[1] : 'lablink-backup.sql';
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Database backup downloaded.');
+    } catch {
+      toast.error('Failed to create database backup.');
+    } finally {
+      setBackingUp(false);
+    }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -250,19 +274,50 @@ const AdminDashboard = () => {
           borderRadius: '16px',
           padding: '24px',
           color: 'white',
+          display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px',
         }}>
-          <h2 style={{
-            fontSize: '20px', fontWeight: 700,
-            margin: 0, display: 'flex', alignItems: 'center', gap: '8px',
-          }}>
-            Admin Panel — {user?.first_name} 🛡️
-          </h2>
-          <p style={{
-            fontSize: '14px', color: 'rgba(255,255,255,0.8)',
-            margin: 0, marginTop: '6px',
-          }}>
-            Full system overview and management controls.
-          </p>
+          <div>
+            <h2 style={{
+              fontSize: '20px', fontWeight: 700,
+              margin: 0, display: 'flex', alignItems: 'center', gap: '8px',
+            }}>
+              Admin Panel — {user?.first_name} 🛡️
+            </h2>
+            <p style={{
+              fontSize: '14px', color: 'rgba(255,255,255,0.8)',
+              margin: 0, marginTop: '6px',
+            }}>
+              Full system overview and management controls.
+            </p>
+          </div>
+          <button
+            onClick={handleBackup}
+            disabled={backingUp}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              padding: '11px 18px',
+              backgroundColor: 'rgba(255,255,255,0.15)', color: '#fff',
+              fontWeight: 600, fontSize: '13px',
+              borderRadius: '10px', border: '1px solid rgba(255,255,255,0.3)',
+              cursor: backingUp ? 'not-allowed' : 'pointer',
+              opacity: backingUp ? 0.7 : 1, flexShrink: 0,
+            }}
+          >
+            {backingUp ? (
+              <span style={{
+                width: '14px', height: '14px',
+                border: '2px solid white',
+                borderTopColor: 'transparent',
+                borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite',
+                display: 'inline-block',
+              }} />
+            ) : (
+              <Download style={{ width: '15px', height: '15px' }} />
+            )}
+            {backingUp ? 'Backing up...' : 'Backup database'}
+          </button>
         </div>
 
         {/* Stat cards */}
@@ -383,6 +438,7 @@ const AdminDashboard = () => {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </Layout>
   );

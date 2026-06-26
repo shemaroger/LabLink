@@ -10,6 +10,7 @@ import {
   BarChart2,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import toast from 'react-hot-toast';
 
 const REPORT_TYPES = [
   {
@@ -116,6 +117,62 @@ const GeneralReport = () => {
   const fmtDate  = (d) => { try { return format(new Date(d), 'dd MMM yyyy, HH:mm'); } catch { return '—'; } };
   const fmtShort = (d) => { try { return format(new Date(d), 'dd MMM yyyy');         } catch { return '—'; } };
 
+  // ── CSV export (admin data backup) ──
+  const toCsv = (rows) => {
+    if (!rows || rows.length === 0) return '';
+    const headers = Object.keys(rows[0]);
+    const escape = (val) => {
+      if (val === null || val === undefined) return '';
+      const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
+      return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+    };
+    const lines = [headers.join(',')];
+    rows.forEach((row) => lines.push(headers.map((h) => escape(row[h])).join(',')));
+    return lines.join('\n');
+  };
+
+  const downloadCsv = (filename, rows) => {
+    const csv = toCsv(rows);
+    if (!csv) return false;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return true;
+  };
+
+  const exportCsv = () => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const datasetMap = {
+      users: data.users,
+      patients: data.patients,
+      results: data.results,
+      triage: data.triage,
+      consultations: data.consultations,
+    };
+
+    if (selectedType === 'general') {
+      const exported = Object.entries(datasetMap)
+        .filter(([, rows]) => rows && rows.length)
+        .map(([name, rows]) => downloadCsv(`lablink-${name}-${today}.csv`, rows));
+      if (!exported.some(Boolean)) toast.error('No data to export.');
+      else toast.success('Exporting all datasets as CSV files.');
+      return;
+    }
+
+    const rows = datasetMap[selectedType];
+    if (!downloadCsv(`lablink-${selectedType}-${today}.csv`, rows)) {
+      toast.error('No data to export for this report type.');
+    } else {
+      toast.success('CSV exported.');
+    }
+  };
+
   // ── Stats ──
   const stats = {
     totalUsers:         data.users.length,
@@ -123,7 +180,7 @@ const GeneralReport = () => {
     nurses:             data.users.filter((u) => u.role === 'nurse').length,
     labStaff:           data.users.filter((u) => u.role === 'lab_staff').length,
     receptionists:      data.users.filter((u) => u.role === 'receptionist').length,
-    admins:             data.users.filter((u) => u.role === 'admin').length,
+    admins:             data.users.filter((u) => u.role === 'admin' || u.role === 'hospital_admin').length,
     totalPatients:      data.patients.length,
     male:               data.patients.filter((p) => p.gender === 'male').length,
     female:             data.patients.filter((p) => p.gender === 'female').length,
@@ -193,7 +250,7 @@ const GeneralReport = () => {
         <table>
           <thead>
             <tr>
-              <th>#</th><th>Full Name</th><th>Email</th><th>Role</th><th>Joined</th>
+              <th>#</th><th>Full Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Status</th><th>Joined</th>
             </tr>
           </thead>
           <tbody>
@@ -201,21 +258,28 @@ const GeneralReport = () => {
               <tr>
                 <td>${i + 1}</td>
                 <td><strong>${u.first_name} ${u.last_name}</strong></td>
-                <td>${u.email}</td>
+                <td>${u.email || '—'}</td>
+                <td>${u.phone || '—'}</td>
                 <td>
                   <span class="badge ${
-                    u.role === 'doctor'       ? 'b-blue'   :
-                    u.role === 'nurse'        ? 'b-green'  :
-                    u.role === 'lab_staff'    ? 'b-purple' :
-                    u.role === 'receptionist' ? 'b-yellow' :
-                    u.role === 'admin'        ? 'b-red'    : 'b-gray'
+                    u.role === 'doctor'          ? 'b-blue'   :
+                    u.role === 'nurse'           ? 'b-green'  :
+                    u.role === 'lab_staff'       ? 'b-purple' :
+                    u.role === 'receptionist'    ? 'b-yellow' :
+                    u.role === 'admin'           ? 'b-red'    :
+                    u.role === 'hospital_admin'  ? 'b-red'    : 'b-gray'
                   }">${u.role?.replace('_', ' ')}</span>
+                </td>
+                <td>
+                  <span class="badge ${u.is_active ? 'b-green' : 'b-gray'}">
+                    ${u.is_active ? 'Active' : 'Inactive'}
+                  </span>
                 </td>
                 <td>${fmtShort(u.created_at || u.date_joined)}</td>
               </tr>
             `).join('')}
             ${data.users.length > 30 ? `
-              <tr><td colspan="5" style="text-align:center;font-style:italic;color:#6b7280;padding:10px;">
+              <tr><td colspan="7" style="text-align:center;font-style:italic;color:#6b7280;padding:10px;">
                 ... and ${data.users.length - 30} more
               </td></tr>
             ` : ''}
@@ -985,6 +1049,21 @@ const GeneralReport = () => {
               <Download style={{ width: '14px', height: '14px' }} />
               {generating ? 'Generating...' : 'Download PDF'}
             </button>
+            <button
+              onClick={exportCsv}
+              disabled={loading}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '10px 18px', backgroundColor: 'rgba(255,255,255,0.15)',
+                color: 'white', fontWeight: 700, fontSize: '13px', borderRadius: '10px',
+                border: '1px solid rgba(255,255,255,0.3)',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.7 : 1,
+              }}
+            >
+              <FileText style={{ width: '14px', height: '14px' }} />
+              Export CSV
+            </button>
           </div>
         </div>
 
@@ -1102,8 +1181,9 @@ const RoleBadge = ({ role }) => {
     nurse:        { bg: '#dcfce7', color: '#16a34a' },
     lab_staff:    { bg: '#ede9fe', color: '#7c3aed' },
     receptionist: { bg: '#fef3c7', color: '#d97706' },
-    admin:        { bg: '#fee2e2', color: '#dc2626' },
-    patient:      { bg: '#eeeffa', color: '#6b77c0' },
+    admin:          { bg: '#fee2e2', color: '#dc2626' },
+    hospital_admin: { bg: '#fee2e2', color: '#dc2626' },
+    patient:        { bg: '#eeeffa', color: '#6b77c0' },
   }[role] || { bg: '#f3f4f6', color: '#6b7280' };
   return (
     <span style={{ padding: '3px 8px', borderRadius: '99px', fontSize: '11px', fontWeight: 600, backgroundColor: s.bg, color: s.color, textTransform: 'capitalize', whiteSpace: 'nowrap' }}>

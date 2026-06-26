@@ -53,6 +53,8 @@ const MyProfile = () => {
         allergies: p?.allergies || '',
         emergency_contact_name: p?.emergency_contact_name || '',
         emergency_contact_phone: p?.emergency_contact_phone || '',
+        insurance_provider: p?.insurance_provider || '',
+        insurance_card_number: p?.insurance_card_number || '',
       });
     }).finally(() => setLoading(false));
   }, []);
@@ -74,6 +76,8 @@ const MyProfile = () => {
           allergies: data.allergies,
           emergency_contact_name: data.emergency_contact_name,
           emergency_contact_phone: data.emergency_contact_phone,
+          insurance_provider: data.insurance_provider,
+          insurance_card_number: data.insurance_card_number,
         });
       } else {
         await api.post('/patients/create/', {
@@ -85,6 +89,8 @@ const MyProfile = () => {
           allergies: data.allergies,
           emergency_contact_name: data.emergency_contact_name,
           emergency_contact_phone: data.emergency_contact_phone,
+          insurance_provider: data.insurance_provider,
+          insurance_card_number: data.insurance_card_number,
         });
       }
       toast.success('Profile updated successfully.');
@@ -312,6 +318,31 @@ const MyProfile = () => {
                       className="input-field"
                       placeholder="+250 7XX XXX XXX"
                       {...regProfile('emergency_contact_phone')}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium
+                                      text-gray-700 mb-1">
+                      Insurance provider
+                    </label>
+                    <input
+                      className="input-field"
+                      placeholder="e.g. NHIF, AAR, Jubilee"
+                      {...regProfile('insurance_provider')}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium
+                                      text-gray-700 mb-1">
+                      Insurance card number
+                    </label>
+                    <input
+                      className="input-field"
+                      placeholder="Card / membership number"
+                      {...regProfile('insurance_card_number')}
                     />
                   </div>
                 </div>

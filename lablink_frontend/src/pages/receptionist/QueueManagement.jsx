@@ -5,7 +5,7 @@ import api from '../../api/axios';
 import {
   Users, Clock, CheckCircle,
   AlertCircle, RefreshCw, UserCheck,
-  ChevronRight, Plus,
+  ChevronRight,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -33,13 +33,8 @@ const QueueStatusBadge = ({ status }) => {
 const QueueManagement = () => {
   const navigate                    = useNavigate();
   const [queue, setQueue]           = useState([]);
-  const [allPatients, setAllPatients] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [updating, setUpdating]     = useState(null);
-  const [assigning, setAssigning]   = useState(null);
-  const [search, setSearch]         = useState('');
-  const [filtered, setFiltered]     = useState([]);
-  const [showSearch, setShowSearch] = useState(false);
 
   const loadQueue = useCallback(async () => {
     try {
@@ -52,53 +47,9 @@ const QueueManagement = () => {
     }
   }, []);
 
-  const loadAllPatients = useCallback(async () => {
-    try {
-      const res = await api.get('/patients/list/');
-      setAllPatients(res.data);
-    } catch {
-      toast.error('Failed to load patients.');
-    }
-  }, []);
-
   useEffect(() => {
     loadQueue();
-    loadAllPatients();
-  }, [loadQueue, loadAllPatients]);
-
-  useEffect(() => {
-    if (!search) { setFiltered([]); return; }
-    const q = search.toLowerCase();
-    const inQueue = new Set(queue.map((p) => p.id));
-    setFiltered(
-      allPatients.filter((p) =>
-        !inQueue.has(p.id) && (
-          p.full_name?.toLowerCase().includes(q) ||
-          p.phone?.includes(q) ||
-          p.email?.toLowerCase().includes(q)
-        )
-      ).slice(0, 6)
-    );
-  }, [search, allPatients, queue]);
-
-  const handleAssignQueue = async (patientId) => {
-    setAssigning(patientId);
-    try {
-      const res = await api.post(
-        `/patients/${patientId}/queue/assign/`
-      );
-      toast.success(res.data.message);
-      setSearch('');
-      setShowSearch(false);
-      await loadQueue();
-    } catch (err) {
-      toast.error(
-        err.response?.data?.error || 'Failed to assign queue.'
-      );
-    } finally {
-      setAssigning(null);
-    }
-  };
+  }, [loadQueue]);
 
   const handleStatusUpdate = async (patientId, newStatus) => {
     setUpdating(patientId);
@@ -156,7 +107,7 @@ const QueueManagement = () => {
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
             <button
-              onClick={() => { loadQueue(); loadAllPatients(); }}
+              onClick={() => loadQueue()}
               style={{
                 display: 'flex', alignItems: 'center', gap: '6px',
                 padding: '9px 16px',
@@ -169,135 +120,8 @@ const QueueManagement = () => {
               <RefreshCw style={{ width: '14px', height: '14px' }} />
               Refresh
             </button>
-            <button
-              onClick={() => setShowSearch((s) => !s)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                padding: '9px 16px',
-                backgroundColor: '#6b77c0', color: '#fff',
-                fontWeight: 600, fontSize: '13px',
-                borderRadius: '10px', border: 'none', cursor: 'pointer',
-                boxShadow: '0 4px 14px rgba(107,119,192,0.30)',
-              }}
-            >
-              <Plus style={{ width: '14px', height: '14px' }} />
-              Add to queue
-            </button>
           </div>
         </div>
-
-        {/* ── Add to queue search ── */}
-        {showSearch && (
-          <div style={{
-            ...card,
-            border: '1.5px solid #6b77c0',
-          }}>
-            <p style={{
-              fontSize: '13px', fontWeight: 600,
-              color: '#6b77c0', margin: 0, marginBottom: '12px',
-            }}>
-              Search patient to add to today's queue
-            </p>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="text"
-                placeholder="Search by name, phone or email..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                autoFocus
-                style={{
-                  width: '100%', boxSizing: 'border-box',
-                  padding: '10px 14px', fontSize: '13px',
-                  color: '#374151', backgroundColor: '#f9fafb',
-                  border: '1px solid #e5e7eb', borderRadius: '10px',
-                  outline: 'none',
-                }}
-              />
-              {filtered.length > 0 && (
-                <div style={{
-                  position: 'absolute', top: '100%', left: 0, right: 0,
-                  backgroundColor: '#ffffff', borderRadius: '10px',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                  border: '1px solid #e5e7eb',
-                  zIndex: 10, marginTop: '4px',
-                  maxHeight: '240px', overflowY: 'auto',
-                }}>
-                  {filtered.map((p) => (
-                    <div
-                      key={p.id}
-                      style={{
-                        display: 'flex', alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '10px 14px',
-                        borderBottom: '1px solid #f3f4f6',
-                        transition: 'background-color 0.1s',
-                      }}
-                      onMouseEnter={(e) =>
-                        e.currentTarget.style.backgroundColor = '#f9fafb'
-                      }
-                      onMouseLeave={(e) =>
-                        e.currentTarget.style.backgroundColor = 'transparent'
-                      }
-                    >
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: '10px',
-                      }}>
-                        <div style={{
-                          width: '32px', height: '32px',
-                          background: 'linear-gradient(135deg, #9ba4d4 0%, #6b77c0 100%)',
-                          borderRadius: '50%', display: 'flex',
-                          alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0,
-                        }}>
-                          <span style={{
-                            color: 'white', fontWeight: 600, fontSize: '12px',
-                          }}>
-                            {p.full_name?.[0]}
-                          </span>
-                        </div>
-                        <div>
-                          <p style={{
-                            fontSize: '13px', fontWeight: 600,
-                            color: '#111827', margin: 0,
-                          }}>
-                            {p.full_name}
-                          </p>
-                          <p style={{
-                            fontSize: '11px', color: '#9ca3af', margin: 0,
-                          }}>
-                            {p.phone || p.email}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleAssignQueue(p.id)}
-                        disabled={assigning === p.id}
-                        style={{
-                          padding: '6px 14px', borderRadius: '8px',
-                          border: 'none', backgroundColor: '#6b77c0',
-                          color: '#fff', fontSize: '12px', fontWeight: 600,
-                          cursor: assigning === p.id
-                            ? 'not-allowed' : 'pointer',
-                          opacity: assigning === p.id ? 0.7 : 1,
-                        }}
-                      >
-                        {assigning === p.id ? 'Adding...' : 'Add to queue'}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            {search.length > 0 && filtered.length === 0 && (
-              <p style={{
-                fontSize: '13px', color: '#9ca3af',
-                margin: 0, marginTop: '8px',
-              }}>
-                No patients found or all matching patients are already in queue.
-              </p>
-            )}
-          </div>
-        )}
 
         {/* ── Stats ── */}
         <div style={{
@@ -378,7 +202,7 @@ const QueueManagement = () => {
                 No patients in queue today
               </p>
               <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0, marginTop: '4px' }}>
-                Use "Add to queue" to assign queue numbers
+                Patients are queued automatically when registered
               </p>
             </div>
           ) : (

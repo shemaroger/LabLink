@@ -5,7 +5,7 @@ import { useAuth } from '../../../context/AuthContext';
 import api from '../../../api/axios';
 import toast from 'react-hot-toast';
 import {
-  ArrowLeft, Mail, Phone, Calendar,
+  ArrowLeft, Mail, Phone, Calendar, CreditCard,
   User, Trash2, FlaskConical, Edit,
   Activity, FileText, Stethoscope,
   ClipboardList,
@@ -62,7 +62,17 @@ const ViewPatient = () => {
     Promise.all([
       api.get(`/patients/${id}/`),
       api.get(`/results/list/?patient_id=${id}`),
-      api.get(`/triage/list/?patient_id=${id}`),
+      isReceptionist
+        ? Promise.resolve({ data: [] })
+        : api.get(`/triage/list/?patient_id=${id}`)
+            .catch((err) => {
+              console.warn(
+                'Triage fetch failed:',
+                err.response?.status,
+                err.response?.data
+              );
+              return { data: [] };
+            }),
       isDoctor
         ? api.get(`/consultations/list/?patient_id=${id}`)
             .catch((err) => {
@@ -86,7 +96,7 @@ const ViewPatient = () => {
         toast.error('Failed to load patient.');
       })
       .finally(() => setLoading(false));
-  }, [id, isDoctor]);
+  }, [id, isDoctor, isReceptionist]);
 
   const handleDelete = async () => {
     if (!window.confirm('Delete this patient? This cannot be undone.')) return;
@@ -246,6 +256,33 @@ const ViewPatient = () => {
                     </p>
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
                       {patient.emergency_contact_phone}
+                    </p>
+                  </div>
+                )}
+
+                {/* Insurance */}
+                {(patient.insurance_provider || patient.insurance_card_number) && (
+                  <div style={{
+                    marginTop: '12px', padding: '14px 16px',
+                    backgroundColor: '#eff6ff', borderRadius: '10px',
+                    border: '1px solid #bfdbfe',
+                  }}>
+                    <p style={{
+                      fontSize: '11px', color: '#2563eb',
+                      fontWeight: 600, margin: 0, marginBottom: '4px',
+                      display: 'flex', alignItems: 'center', gap: '4px',
+                    }}>
+                      <CreditCard style={{ width: '12px', height: '12px' }} />
+                      Insurance
+                    </p>
+                    <p style={{
+                      fontSize: '13px', fontWeight: 600,
+                      color: '#111827', margin: 0,
+                    }}>
+                      {patient.insurance_provider || '—'}
+                    </p>
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
+                      {patient.insurance_card_number || '—'}
                     </p>
                   </div>
                 )}

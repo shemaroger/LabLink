@@ -1,27 +1,21 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff } from 'lucide-react';
 
 const LoginPage = () => {
-  const { login }             = useAuth();
-  const navigate              = useNavigate();
-  const [showPw, setShowPw]   = useState(false);
-  const [loading, setLoading] = useState(false);
+  const { login, completeMfaLogin } = useAuth();
+  const navigate               = useNavigate();
+  const [showPw, setShowPw]    = useState(false);
+  const [loading, setLoading]  = useState(false);
+  const [mfaEmail, setMfaEmail] = useState(null);
+  const [mfaCode, setMfaCode]   = useState('');
   const { register, handleSubmit, formState: { errors } } = useForm();
 
-  const onSubmit = async (data) => {
-  setLoading(true);
-  try {
-    const user = await login(data);
-    console.log('USER AFTER LOGIN:', user);
-    console.log('must_change_password:', user.must_change_password);
-    console.log('role:', user.role);
-
+  const redirectAfterLogin = (user) => {
     if (user.must_change_password) {
-      console.log('Redirecting to change-password');
       navigate('/change-password');
       return;
     }
@@ -32,14 +26,41 @@ const LoginPage = () => {
     else if (user.role === 'receptionist') navigate('/receptionist/dashboard');
     else if (user.role === 'nurse')        navigate('/nurse/dashboard');
     else if (user.role === 'admin')        navigate('/admin/dashboard');
+    else if (user.role === 'hospital_admin') navigate('/admin/dashboard');
     else navigate('/unauthorized');
+  };
 
-  } catch (err) {
-    toast.error(err.response?.data?.detail || 'Invalid email or password.');
-  } finally {
-    setLoading(false);
-  }
-};
+  const onSubmit = async (data) => {
+    setLoading(true);
+    try {
+      const result = await login(data);
+
+      if (result?.mfaRequired) {
+        setMfaEmail(result.email);
+        toast.success('A verification code has been sent to your email.');
+        return;
+      }
+
+      redirectAfterLogin(result);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Invalid email or password.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onSubmitMfaCode = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const user = await completeMfaLogin(mfaEmail, mfaCode);
+      redirectAfterLogin(user);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Invalid or expired code.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div style={{
@@ -165,9 +186,58 @@ const LoginPage = () => {
             fontSize: '28px', fontWeight: 800,
             color: '#111827', marginBottom: '36px', marginTop: 0,
           }}>
-            Sign In
+            {mfaEmail ? 'Enter verification code' : 'Sign In'}
           </h2>
 
+          {mfaEmail ? (
+            <form onSubmit={onSubmitMfaCode} style={{ width: '100%' }}>
+              <p style={{ fontSize: '14px', color: '#6b7280', marginTop: 0, marginBottom: '24px' }}>
+                We sent a 6-digit code to <strong>{mfaEmail}</strong>. Enter it below to finish signing in.
+              </p>
+
+              <div style={{ marginBottom: '28px' }}>
+                <label style={{ display: 'block', fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>
+                  Verification code:
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                  autoFocus
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    padding: '8px 0', fontSize: '20px', letterSpacing: '6px',
+                    color: '#111827', background: 'transparent', border: 'none',
+                    borderBottom: '1.5px solid #d1d5db', outline: 'none',
+                  }}
+                />
+              </div>
+
+              <button type="submit" disabled={loading || mfaCode.length !== 6}
+                style={{
+                  width: '100%', padding: '16px',
+                  backgroundColor: '#6b77c0', color: '#ffffff',
+                  fontWeight: 700, fontSize: '16px',
+                  borderRadius: '12px', border: 'none',
+                  cursor: (loading || mfaCode.length !== 6) ? 'not-allowed' : 'pointer',
+                  opacity: (loading || mfaCode.length !== 6) ? 0.7 : 1,
+                  boxShadow: '0 4px 20px rgba(107,119,192,0.40)',
+                  marginBottom: '16px', boxSizing: 'border-box',
+                }}>
+                {loading ? 'Verifying...' : 'Verify and sign in'}
+              </button>
+
+              <button type="button" onClick={() => { setMfaEmail(null); setMfaCode(''); }}
+                style={{
+                  width: '100%', padding: '8px', background: 'none', border: 'none',
+                  color: '#6b7280', fontSize: '13px', cursor: 'pointer',
+                }}>
+                ← Back to login
+              </button>
+            </form>
+          ) : (
           <form onSubmit={handleSubmit(onSubmit)} style={{ width: '100%' }}>
 
             {/* Email */}
@@ -273,15 +343,24 @@ const LoginPage = () => {
               ) : 'Sign In'}
             </button>
 
+            <div style={{ textAlign: 'center', marginBottom: '4px' }}>
+              <Link to="/forgot-password" style={{ fontSize: '13px', color: '#6b77c0', textDecoration: 'none' }}>
+                Forgot password?
+              </Link>
+            </div>
+
           </form>
+          )}
 
           {/* No self-registration — admin creates all accounts */}
-          <p style={{
-            fontSize: '13px', color: '#9ca3af',
-            margin: 0, textAlign: 'center',
-          }}>
-            Contact your administrator to get access.
-          </p>
+          {!mfaEmail && (
+            <p style={{
+              fontSize: '13px', color: '#9ca3af',
+              margin: '16px 0 0', textAlign: 'center',
+            }}>
+              Contact your administrator to get access.
+            </p>
+          )}
 
         </div>
       </div>

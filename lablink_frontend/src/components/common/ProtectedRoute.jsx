@@ -44,8 +44,11 @@ const ProtectedRoute = ({ children, roles }) => {
     return <Navigate to="/login" replace />;
   }
 
+  // Hospital Admin has identical access to Admin — treat it as satisfying any admin-gated route.
+  const effectiveRoles = user.role === 'hospital_admin' ? [user.role, 'admin'] : [user.role];
+
   // Wrong role
-  if (roles && !roles.includes(user.role)) {
+  if (roles && !roles.some((r) => effectiveRoles.includes(r))) {
     return <Navigate to="/unauthorized" replace />;
   }
 

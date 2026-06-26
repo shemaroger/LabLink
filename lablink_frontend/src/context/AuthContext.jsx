@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { loginUser, logoutUser, getProfile } from '../api/auth';
+import { loginUser, logoutUser, getProfile, verifyMfaLogin } from '../api/auth';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext(null);
@@ -27,15 +27,13 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = async (credentials) => {
-    const res = await loginUser(credentials);
-
-    const tokens = res.data.tokens || {
-      access:  res.data.access,
-      refresh: res.data.refresh,
+  const applyAuthResponse = async (data) => {
+    const tokens = data.tokens || {
+      access:  data.access,
+      refresh: data.refresh,
     };
 
-    const userData = res.data.user || null;
+    const userData = data.user || null;
 
     if (!tokens.access) {
       throw new Error('No access token received');
@@ -53,6 +51,21 @@ export const AuthProvider = ({ children }) => {
     setUser(finalUser);
     toast.success(`Welcome back, ${finalUser.first_name}!`);
     return finalUser;
+  };
+
+  const login = async (credentials) => {
+    const res = await loginUser(credentials);
+
+    if (res.data.mfa_required) {
+      return { mfaRequired: true, email: res.data.email };
+    }
+
+    return applyAuthResponse(res.data);
+  };
+
+  const completeMfaLogin = async (email, code) => {
+    const res = await verifyMfaLogin({ email, code });
+    return applyAuthResponse(res.data);
   };
 
   const logout = async () => {
@@ -80,7 +93,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{
-      user, setUser, loading, login, logout, refreshUser,
+      user, setUser, loading, login, completeMfaLogin, logout, refreshUser,
     }}>
       {children}
     </AuthContext.Provider>

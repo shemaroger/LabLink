@@ -5,7 +5,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useForm } from 'react-hook-form';
 import api from '../../../api/axios';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Save, User, Phone, Mail, Send } from 'lucide-react';
+import { ArrowLeft, Save, User, Phone, Mail, Send, CreditCard } from 'lucide-react';
 
 const CreatePatient = () => {
   const navigate              = useNavigate();
@@ -35,6 +35,8 @@ const CreatePatient = () => {
         allergies:               data.allergies              || '',
         emergency_contact_name:  data.emergency_contact_name  || '',
         emergency_contact_phone: data.emergency_contact_phone || '',
+        insurance_provider:      data.insurance_provider      || '',
+        insurance_card_number:   data.insurance_card_number   || '',
       });
       toast.success(
         isReceptionist
@@ -330,6 +332,32 @@ const CreatePatient = () => {
                   style={inputStyle}
                   {...register('emergency_contact_phone')}
                 />
+              </div>
+
+              {/* ── Insurance ── */}
+              {sectionTitle('Insurance (optional)')}
+
+              {/* Insurance provider */}
+              <div>
+                <label style={labelStyle}>Insurance provider</label>
+                <input
+                  type="text" placeholder="e.g. NHIF, AAR, Jubilee"
+                  style={inputStyle}
+                  {...register('insurance_provider')}
+                />
+              </div>
+
+              {/* Insurance card number */}
+              <div>
+                <label style={labelStyle}>Insurance card number</label>
+                <div style={{ position: 'relative' }}>
+                  <CreditCard style={iconStyle} />
+                  <input
+                    type="text" placeholder="Card / membership number"
+                    style={inputWithIconStyle}
+                    {...register('insurance_card_number')}
+                  />
+                </div>
               </div>
 
               {/* ── Buttons ── */}

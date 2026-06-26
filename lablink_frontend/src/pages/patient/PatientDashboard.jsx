@@ -2,12 +2,13 @@ import React from 'react';
 import { useEffect, useState } from 'react';
 import Layout from '../../components/layout/Layout';
 import StatusBadge from '../../components/common/StatusBadge';
+import api from '../../api/axios';
 import { getMyResults } from '../../api/results';
 import { getMyNotifications, markAsRead } from '../../api/notifications';
 import { useAuth } from '../../context/AuthContext';
 import {
   FileText, Bell, CheckCircle,
-  Clock, FlaskConical, Download,
+  Clock, FlaskConical, Download, Users,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -30,13 +31,19 @@ const PatientDashboard = () => {
   const navigate = useNavigate();
   const [results, setResults] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [queueInfo, setQueueInfo] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getMyResults(), getMyNotifications()])
-      .then(([resData, notifData]) => {
+    Promise.all([
+      getMyResults(),
+      getMyNotifications(),
+      api.get('/patients/profile/').catch(() => ({ data: null })),
+    ])
+      .then(([resData, notifData, profileData]) => {
         setResults(resData.data);
         setNotifications(notifData.data);
+        setQueueInfo(profileData.data);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -67,6 +74,30 @@ const PatientDashboard = () => {
             Here is a summary of your laboratory results and notifications.
           </p>
         </div>
+
+        {/* Queue status */}
+        {queueInfo?.queue_number && queueInfo?.queue_status !== 'done' && (
+          <div className="card flex items-center gap-4 border-2 border-primary-200 bg-primary-50">
+            <div className="w-14 h-14 rounded-xl bg-primary-600 text-white
+                            flex items-center justify-center flex-shrink-0">
+              <Users className="w-7 h-7" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold text-gray-900">
+                Queue number {queueInfo.queue_number}
+              </p>
+              <p className="text-sm text-gray-600 mt-0.5">
+                {queueInfo.queue_status === 'waiting' && (
+                  queueInfo.people_ahead > 0
+                    ? `${queueInfo.people_ahead} patient${queueInfo.people_ahead !== 1 ? 's' : ''} ahead of you`
+                    : "You're next!"
+                )}
+                {queueInfo.queue_status === 'called' && "It's your turn — please proceed."}
+                {queueInfo.queue_status === 'in_progress' && 'You are currently being seen.'}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

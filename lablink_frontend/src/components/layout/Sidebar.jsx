@@ -335,7 +335,7 @@ const Sidebar = () => {
         )}
 
         {/* ── Admin links ── */}
-        {user?.role === 'admin' && (
+        {(user?.role === 'admin' || user?.role === 'hospital_admin') && (
           <>
             {/* Dashboard */}
             <NavLink
