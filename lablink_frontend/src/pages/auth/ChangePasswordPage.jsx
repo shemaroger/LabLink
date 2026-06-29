@@ -20,6 +20,7 @@ const ChangePasswordPage = () => {
     register, handleSubmit, watch, formState: { errors },
   } = useForm();
   const newPassword = watch('new_password');
+  const isAdminRole = user?.role === 'admin' || user?.role === 'hospital_admin';
 
   const onToggleMfa = async (e) => {
     const enabled = e.target.checked;
@@ -438,25 +439,31 @@ const ChangePasswordPage = () => {
                     Two-factor authentication
                   </p>
                   <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
-                    Require a one-time code emailed to you at every login.
+                    {isAdminRole
+                      ? 'Required for admin accounts and cannot be turned off.'
+                      : 'Require a one-time code emailed to you at every login.'}
                   </p>
                 </div>
-                <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                <label style={{
+                  position: 'relative', display: 'inline-block', width: '44px', height: '24px',
+                  opacity: isAdminRole ? 0.6 : 1,
+                }}>
                   <input
                     type="checkbox"
-                    checked={!!user?.mfa_enabled}
-                    disabled={mfaLoading}
+                    checked={isAdminRole ? true : !!user?.mfa_enabled}
+                    disabled={mfaLoading || isAdminRole}
                     onChange={onToggleMfa}
                     style={{ opacity: 0, width: 0, height: 0 }}
                   />
                   <span style={{
                     position: 'absolute', inset: 0, borderRadius: '24px',
-                    backgroundColor: user?.mfa_enabled ? '#6b77c0' : '#d1d5db',
-                    transition: 'background-color 0.2s', cursor: mfaLoading ? 'not-allowed' : 'pointer',
+                    backgroundColor: (isAdminRole || user?.mfa_enabled) ? '#6b77c0' : '#d1d5db',
+                    transition: 'background-color 0.2s',
+                    cursor: (mfaLoading || isAdminRole) ? 'not-allowed' : 'pointer',
                   }} />
                   <span style={{
                     position: 'absolute', top: '3px',
-                    left: user?.mfa_enabled ? '23px' : '3px',
+                    left: (isAdminRole || user?.mfa_enabled) ? '23px' : '3px',
                     width: '18px', height: '18px', borderRadius: '50%',
                     backgroundColor: '#fff', transition: 'left 0.2s',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.3)',

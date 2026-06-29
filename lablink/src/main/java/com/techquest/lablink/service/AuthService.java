@@ -115,6 +115,7 @@ public class AuthService {
         user.setRole(request.getRole());
         user.setMustChangePassword(true);
         user.setEmailVerified(false);
+        user.setMfaEnabled(request.getRole() == Role.ADMIN || request.getRole() == Role.HOSPITAL_ADMIN);
         User saved = userRepository.save(user);
 
         emailService.sendWelcomeEmail(saved.getEmail(), saved.getFirstName(), temporaryPassword);
@@ -135,7 +136,7 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password."));
 
-        if (user.isMfaEnabled()) {
+        if (requiresMfa(user)) {
             String code = generateOtpCode();
             user.setMfaCode(code);
             user.setMfaCodeExpiresAt(LocalDateTime.now().plusMinutes(MFA_CODE_EXPIRY_MINUTES));
@@ -150,6 +151,14 @@ public class AuthService {
         auditLogService.logAction(user, AuditAction.LOGIN, "user", user.getId().toString(),
                 "User logged in: " + user.getEmail());
         return new AuthResponse(tokens, UserResponse.from(user));
+    }
+
+    /**
+     * Admin and hospital admin accounts always require an email OTP on login, regardless of
+     * their personal mfa_enabled toggle — their access is sensitive enough that it isn't optional.
+     */
+    private boolean requiresMfa(User user) {
+        return user.isMfaEnabled() || user.getRole() == Role.ADMIN || user.getRole() == Role.HOSPITAL_ADMIN;
     }
 
     @Transactional
@@ -180,6 +189,9 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found."));
         if (enabled && (user.getEmail() == null || user.getEmail().isBlank())) {
             throw new ConflictException("An email address is required to enable two-factor authentication.");
+        }
+        if (!enabled && (user.getRole() == Role.ADMIN || user.getRole() == Role.HOSPITAL_ADMIN)) {
+            throw new ConflictException("Two-factor authentication cannot be disabled for admin accounts.");
         }
         user.setMfaEnabled(enabled);
         User saved = userRepository.save(user);

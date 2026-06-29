@@ -1,6 +1,7 @@
 package com.techquest.lablink.config;
 
 import com.techquest.lablink.security.CustomUserDetailsService;
+import com.techquest.lablink.security.ForcePasswordChangeFilter;
 import com.techquest.lablink.security.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,13 +35,16 @@ public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
     private final JwtAuthFilter jwtAuthFilter;
+    private final ForcePasswordChangeFilter forcePasswordChangeFilter;
     private final CorsConfigurationSource corsConfigurationSource;
 
     public SecurityConfig(CustomUserDetailsService userDetailsService,
                            JwtAuthFilter jwtAuthFilter,
+                           ForcePasswordChangeFilter forcePasswordChangeFilter,
                            CorsConfigurationSource corsConfigurationSource) {
         this.userDetailsService = userDetailsService;
         this.jwtAuthFilter = jwtAuthFilter;
+        this.forcePasswordChangeFilter = forcePasswordChangeFilter;
         this.corsConfigurationSource = corsConfigurationSource;
     }
 
@@ -77,7 +81,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .anyRequest().authenticated())
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(forcePasswordChangeFilter, JwtAuthFilter.class);
 
         return http.build();
     }
